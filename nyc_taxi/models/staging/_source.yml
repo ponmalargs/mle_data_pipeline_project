@@ -4,7 +4,7 @@ sources:
   - name: clean
     description: Polars-cleaned NYC TLC Green Taxi files (data/clean)
     meta:
-      external_location: "../data/clean/green_taxi/*.parquet"
+      external_location: "D:/Malar/Learning/AI_MachineLearning/Materials/Project/mle_data_pipeline_project/data/green_taxi/clean/*.parquet"
     tables:
       - name: green_trips
         description: One row per valid green taxi trip 

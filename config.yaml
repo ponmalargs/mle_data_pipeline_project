@@ -1,0 +1,28 @@
+# ---- Source ----
+source:
+  base_url: https://d37ci6vzurychx.cloudfront.net/trip-data
+  file_pattern: "green_tripdata_{year}-{month:02d}.parquet"
+  timeout_seconds: 120
+
+# ---- What to process ----
+# Leave year/months empty (null) to use "lag_months before today"
+run:
+  year: 2025
+  months: [1, 2, 3]
+  lag_months: 2
+
+# ---- Folders (relative to the project root) ----
+paths:
+  raw: data/green_taxi/raw
+  clean: data/green_taxi/clean
+  rescue: data/green_taxi/rescue
+  data_dir: data
+  dbt_project: nyc_taxi
+
+# ---- Orchestration ----
+prefect:
+  deployment_name: monthly
+  cron: "0 6 15 * *"
+  timezone: Europe/Berlin
+  download_retries: 3
+  retry_delay_seconds: 30

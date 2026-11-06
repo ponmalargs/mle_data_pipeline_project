@@ -3,11 +3,17 @@ from pathlib import Path
 
 import click
 import polars as pl
+from .config import CFG,file_name
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-RAW_DIR = PROJECT_ROOT / "data"  / "green_taxi"/ "raw"
-CLEAN_DIR = PROJECT_ROOT / "data"  / "green_taxi"/ "clean" 
-RESCUE_DIR = PROJECT_ROOT / "data" / "green_taxi"/ "rescue"
+RAW_DIR = CFG["paths"]["raw"]
+CLEAN_DIR = CFG["paths"]["clean"]
+RESCUE_DIR = CFG["paths"]["rescue"]
+
+
+# PROJECT_ROOT = Path(__file__).resolve().parent.parent
+# RAW_DIR = PROJECT_ROOT / "data"  / "green_taxi"/ "raw"
+# CLEAN_DIR = PROJECT_ROOT / "data"  / "green_taxi"/ "clean" 
+# RESCUE_DIR = PROJECT_ROOT / "data" / "green_taxi"/ "rescue"
 
 RENAME = {
     "VendorID": "vendor_id",
@@ -119,7 +125,8 @@ def clean_file(src: Path, name: str, year: int, month: int) -> None:
 def main(year: int, month: tuple[int, ...]) -> None:
     """Clean raw Green Taxi files; move rejected rows to the rescue folder."""
     for m in sorted(set(month)):
-        name = f"green_tripdata_{year}-{m:02d}.parquet"
+        #name = f"green_tripdata_{year}-{m:02d}.parquet"
+        name = file_name(year, m)
         src = RAW_DIR / name
         if not src.exists():
             click.echo(f"Missing: {src}", err=True)

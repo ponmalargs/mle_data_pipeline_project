@@ -1,0 +1,18 @@
+version: 2
+
+seeds:
+  - name: payment_types
+    description: TLC payment type lookup
+    config:
+      column_types:
+        payment_type: integer
+        is_paid: boolean
+        payment_type_desc: string
+  -  name: taxi_zone
+     description: Taxi zone lookup
+     config:
+       column_types:
+         location_id: integer
+         borough: string
+         zone: string
+         service_zone: string
