@@ -3,6 +3,7 @@ import subprocess
 import sys
 import click
 from pathlib import Path
+import os
 
 from prefect import flow, task, get_run_logger
 from .config import CFG, file_name, run_period
@@ -42,11 +43,13 @@ def dbt_build() -> None:
     dbt_exe = shutil.which("dbt", path=str(Path(sys.executable).parent)) or "dbt"
 
     for cmd in (["deps"], ["build"]):
+        env = {**os.environ, "TAXI_CLEAN_DIR": CFG["paths"]["clean"].as_posix()}
         result = subprocess.run(
-            [dbt_exe, *cmd],
-            cwd=DBT_DIR,
-            capture_output=True,
-            text=True,
+        [dbt_exe, *cmd],
+        cwd=DBT_DIR,
+        env=env,
+        capture_output=True,
+        text=True,
         )
         logger.info(result.stdout)
         if result.returncode != 0:

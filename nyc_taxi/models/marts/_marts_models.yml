@@ -1,7 +1,7 @@
 version: 2
 
 models:
-  - name: dim_zones
+  - name: dim_zone
     description: One row per TLC taxi zone
     columns:
       - name: location_id
@@ -15,7 +15,14 @@ models:
       - name: pickup_location_id
         tests:
           - relationships:
-              to: ref('dim_zones')
+              to: ref('dim_zone')
+              field: location_id
+              config:
+                severity: warn
+      - name: dropoff_location_id
+        tests:
+          - relationships:
+              to: ref('dim_zone')
               field: location_id
               config:
                 severity: warn
