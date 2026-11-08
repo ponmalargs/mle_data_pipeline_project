@@ -35,19 +35,35 @@ data/green_taxi/rescue/*.parquet (rejected rows)         │          fact_daily
 | `data/` | Raw, clean and rescue Parquet files plus the DuckDB database (not committed) |
 | `scripts/Analysis/` | Notebooks for data exploration and checking dbt outputs |
 
-## Setup
+## How to Run This Project
 
-Requires [uv](https://docs.astral.sh/uv/) and Python 3.13 (see `.python-version`).
+### Prerequisites
+
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) (installs Python 3.13 for you, see `.python-version`)
+- Git
+- About 50 MB of free disk space for three months of data
+
+### 1. Clone the repository
 
 ```bash
 git clone git@github.com:ponmalargs/mle_data_pipeline_project.git
 cd mle_data_pipeline_project
+```
+
+### 2. Install dependencies
+
+```bash
 uv sync
 ```
 
-### dbt profile
+This creates a virtual environment in `.venv/` with Polars, DuckDB, dbt and Prefect, and installs the `taxi-download`, `taxi-clean` and `taxi-run` commands.
 
-dbt looks for a profile named `nyc_taxi` in `~/.dbt/profiles.yml`. Example:
+### 3. Create the dbt profile (one time only)
+
+dbt needs a profile named `nyc_taxi`. Create the file `profiles.yml` in your dbt folder:
+
+- Windows: `C:\Users\<you>\.dbt\profiles.yml`
+- Mac / Linux: `~/.dbt/profiles.yml`
 
 ```yaml
 nyc_taxi:
@@ -59,33 +75,88 @@ nyc_taxi:
       threads: 4
 ```
 
-> [!NOTE]
-> dbt reads the clean Parquet files from the `TAXI_CLEAN_DIR` environment variable.
-> `taxi-run` sets it automatically from `paths.clean` in `config.yaml`. When you run
-> dbt by hand without setting it, the default is `../data/green_taxi/clean`.
+Check that dbt can find it:
 
-## Running the Pipeline
+```bash
+cd nyc_taxi
+uv run dbt debug
+cd ..
+```
 
-### Full pipeline (recommended)
+### 4. Choose what to process (optional)
+
+`config.yaml` is set to January–March 2025 by default:
+
+```yaml
+run:
+  year: 2025
+  months: [1, 2, 3]
+```
+
+If `year` or `months` is left empty, the pipeline processes the month `lag_months` before today (TLC publishes data with a delay). The `prefect` section sets retries and a monthly schedule (`0 6 15 * *`, Europe/Berlin).
+
+### 5. Run the pipeline
+
+**Option A – everything in one command (recommended)**
 
 ```bash
 uv run taxi-run                       # uses year/months from config.yaml
 uv run taxi-run -y 2025 -m 1 -m 2     # override the period
 ```
 
-### Step by step
+This runs the Prefect flow: download → clean → `dbt deps` → `dbt build`.
+
+**Option B – step by step**
 
 ```bash
-uv run taxi-download -y 2025 -m 1 -m 2 -m 3   # 1. Extract
-uv run taxi-clean    -y 2025 -m 1 -m 2 -m 3   # 2. Light transform
+uv run taxi-download -y 2025 -m 1 -m 2 -m 3   # 1. Extract to data/green_taxi/raw
+uv run taxi-clean    -y 2025 -m 1 -m 2 -m 3   # 2. Clean to data/green_taxi/clean and rescue
 cd nyc_taxi
 uv run dbt deps                               # 3. Install dbt_utils
 uv run dbt build                              # 4. Seeds, models and tests
+cd ..
 ```
 
-### Configuration
+> [!NOTE]
+> dbt reads the clean Parquet files from the `TAXI_CLEAN_DIR` environment variable.
+> `taxi-run` sets it automatically from `paths.clean` in `config.yaml`. When you run
+> dbt by hand without setting it, the default is `../data/green_taxi/clean`.
 
-Edit `config.yaml` to change what gets processed. If `run.year` or `run.months` is left empty, the pipeline processes the month `lag_months` before today (TLC publishes data with a delay). The `prefect` section defines retries and a monthly schedule (`0 6 15 * *`, Europe/Berlin).
+### 6. Check the results
+
+After a successful run you should have:
+
+| Output | Location |
+|---|---|
+| Raw monthly files | `data/green_taxi/raw/` |
+| Clean files | `data/green_taxi/clean/` |
+| Rejected rows with `reject_reason` | `data/green_taxi/rescue/` |
+| DuckDB database with all dbt models | `data/nyc_taxi.duckdb` |
+
+Show the revenue per day:
+
+```bash
+uv run python -c "import duckdb; duckdb.connect('data/nyc_taxi.duckdb', read_only=True).sql('select pickup_date, sum(revenue) as revenue from marts.fact_daily_trips group by 1 order by 1').show()"
+```
+
+You can also open the notebooks in `scripts/Analysis/` (select the `.venv` kernel), or browse the models and lineage with `dbt docs` (see [Lineage](#lineage)).
+
+### 7. View runs in the Prefect UI (optional)
+
+```bash
+uv run prefect server start      # then open http://localhost:4200
+```
+
+Run `taxi-run` in a second terminal and follow the flow and task logs in the UI.
+
+### Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| `Could not find profile named 'nyc_taxi'` | Create `profiles.yml` as in step 3. |
+| DuckDB error `Could not set lock on file` | Close any notebook or tool that has `nyc_taxi.duckdb` open, then run again. |
+| `No files found that match the pattern` in dbt | Run the clean step first, or check `paths.clean` in `config.yaml`. |
+| `Failed ... 403/404` while downloading | That month is not published yet. Choose an earlier month. |
 
 ## Data Cleaning Rules
 
