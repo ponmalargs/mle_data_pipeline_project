@@ -1,0 +1,38 @@
+version: 2
+
+models:
+  - name: stg_green_trips
+    description: Cleaned green taxi trips, one row per trip
+    columns:
+      - name: trip_id
+        description: Hash of key trip fields
+        tests: [not_null, unique]
+      - name: pickup_datetime
+        tests: [not_null]
+      - name: payment_type
+        description: Payment code; label comes from stg_payment_types
+        tests:
+          - relationships:
+              to: ref('stg_payment_types')
+              field: payment_type
+              config:
+                severity: warn
+
+  - name: stg_payment_types
+    description: Payment type codes and labels, from the payment_types seed
+    columns:
+      - name: payment_type
+        tests: [unique, not_null]
+      - name: payment_type_desc
+        tests: [not_null]
+  - name: stg_taxi_zones
+    description: Taxi zone lookup, from the taxi_zones seed
+    columns:
+      - name: location_id
+        tests: [unique, not_null]
+      - name: borough
+        tests: [not_null]
+      - name: zone
+        tests: [not_null]
+      - name: service_zone
+        tests: [not_null]

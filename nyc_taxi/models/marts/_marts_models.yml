@@ -1,0 +1,69 @@
+version: 2
+
+models:
+  - name: dim_zone
+    description: One row per TLC taxi zone
+    columns:
+      - name: location_id
+        tests: [unique, not_null]
+
+  - name: fact_trips
+    description: One row per valid green taxi trip
+    columns:
+      - name: trip_id
+        tests: [unique, not_null]
+      - name: pickup_location_id
+        tests:
+          - relationships:
+              to: ref('dim_zone')
+              field: location_id
+              config:
+                severity: warn
+      - name: dropoff_location_id
+        tests:
+          - relationships:
+              to: ref('dim_zone')
+              field: location_id
+              config:
+                severity: warn
+      - name: total_amount
+        tests: [not_null]
+      - name: payment_type
+        tests:
+          - relationships:
+              to: ref('dim_payment_type')
+              field: payment_type
+              config:
+                severity: warn
+      - name: pickup_date
+        tests:
+          - relationships:
+              to: ref('dim_date')
+              field: date_day
+      - name: dropoff_date
+        tests:
+          - relationships:
+              to: ref('dim_date')
+              field: date_day  
+
+  - name: fact_daily_trips
+    description: Daily trip KPIs per pickup borough
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns: [pickup_date, pickup_borough]
+    columns:
+      - name: pickup_date
+        tests: [not_null]
+      - name: trips
+        tests: [not_null]
+  - name: dim_payment_type
+    description: One row per payment type code
+    columns:
+      - name: payment_type
+        tests: [unique, not_null]
+
+  - name: dim_date
+    description: One row per calendar day covered by the trip data
+    columns:
+      - name: date_day
+        tests: [unique, not_null]

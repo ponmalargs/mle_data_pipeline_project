@@ -1,26 +1,32 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
 [project]
-name = "mle-data-pipeline-project"
+name = "taxi-pipeline"
 version = "0.1.0"
-requires-python = ">=3.13.17"
+description = "EtLT pipeline for NYC Green Taxi data: Polars, DuckDB, dbt, Prefect"
+requires-python = ">=3.11"
 dependencies = [
-    "click>=8.5.0",
-    "pandas>=3.0.5",
-    "prefect>=3.8.6",
-    "pyarrow>=25.0.1",
-    "requests>=2.34.2",
+    "requests",
+    "click",
+    "pyyaml",
+    "pandas",
+    "pyarrow",
+    "polars",
+    "duckdb",
+    "dbt-duckdb",
+    "prefect",
 ]
 
-[dependency-groups]
-dev = [
-    "ipykernel>=7.3.0",
-    "pytest>=9.1.1",
-]
+[project.optional-dependencies]
+dev = ["pytest", "ipykernel"]
 
-[tool.ty.environment]
-root = [".", "solution/src"]
+[project.scripts]
+taxi-download = "taxi_pipeline.download_files:main"
+taxi-clean    = "taxi_pipeline.clean_green_taxi:main"
+taxi-run      = "taxi_pipeline.pipeline_flow:main"
+#taxi-serve    = "taxi_pipeline.serve:main"
 
-[tool.uv]
-required-version = ">=0.13.5"
-# Apply certificate fixes without adding unused runtime packages.
-# Prefect's server still uses FastAPI's removed min_items argument.
-constraint-dependencies = ["certifi>=2026.10.19", "pip>=26.2.2", "fastapi<0.155"]
+[tool.setuptools.packages.find]
+where = ["src"]
